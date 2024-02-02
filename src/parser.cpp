@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include "../headers/lexer.h"
 #include "../headers/parser.h"
+#include "../headers/error.h"
 
 using namespace std;
 
@@ -79,17 +80,18 @@ int Parser::parseStatement()
             if (token.type == TokenType::STRING)
             {
                 string value = token.value;
-                cout << "PRINT: " << value << endl;
+                cout << value << endl;
                 token = lexer.getNextToken();
             }
             else
             {
                 int value = parseExpression();
-                cout << "PRINT: " << value << endl;
+                cout << value << endl;
                 token = lexer.getNextToken();
             }
         }
     }
+
     // Implementation for Var Statement
     else if (token.type == TokenType::VAR)
     {
@@ -425,26 +427,3 @@ int Parser::parseFactor()
     }
     return 0;
 }
-
-// int main( int argc, char* argv[] ) { // take file name as parameter
-//     if (argc != 2) {
-//         // cerr << "Usage: " << argv[0] << " <filename>" << endl;
-//         return 1;
-//     }
-
-//     ifstream file(argv[1]);
-//     if (!file.is_open()) {
-//         // cerr << "Error: Unable to open file '" << argv[1] << "'" << endl;
-//         return 1;
-//     }
-
-//     string source;
-//     string line;
-//     while (getline(file, line)) {
-//         Lexer lexer(line);
-//         Parser parser(lexer);
-//         int result = parser.parse();
-//     }
-
-//     return 0;
-// }
