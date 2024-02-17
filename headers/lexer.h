@@ -13,12 +13,15 @@ public:
 
 private:
     bool isLayout(char c);
+    bool isIdentifierCharacter(char c);
     Token getIntegerToken();
     Token getIdentifierToken();
     Token getStringToken();
 
     std::string source;
     int currentPos;
+    int line;
+    int column;
 };
 
 #endif // LEXEX_H

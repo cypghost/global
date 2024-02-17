@@ -16,17 +16,21 @@ void printToken(Token currentToken);
 unordered_map<string, int> variables;
 
 Parser::Parser(Lexer &lexer) : lexer(lexer) {}
+Parser::Parser(Lexer &lexer, bool error, bool warning, bool log) : lexer(lexer), showError(error), showWarning(warning), showLog(log) {}
 
 // Start Parsing Process
 int Parser::parse()
 {
-    token = lexer.getNextToken();
-    if (token.type == TokenType::END_OF_FILE)
-    {
-        // Empty program
-        return 0;
-    }
-    int result = parseStatement();
+    int result;
+    do {
+        token = lexer.getNextToken();
+        if (token.type == TokenType::END_OF_FILE)
+        {
+            // Empty program
+            return 0;
+        }
+        result = parseStatement();
+    } while (result == 0 && (token.type == TokenType::END_OF_LINE || token.type == TokenType::SEMICOLON));
     return result;
 }
 
@@ -47,13 +51,13 @@ int Parser::parseStatement()
                 token = lexer.getNextToken();
                 if (token.type == TokenType::RIGHT_PAREN || token.type == TokenType::PAREN)
                 {
-                    cout << "PRINT: " << value << endl;
+                    handlePrint(value);
                     token = lexer.getNextToken();
                     return 0;
                 }
                 else
                 {
-                    // cerr << "Error: Invalid print statement" << endl;
+                    handleError("Invalid print statement", token.line, token.column, showError);
                     return 0;
                 }
             }
@@ -63,13 +67,13 @@ int Parser::parseStatement()
                 int value = parseExpression();
                 if (token.type == TokenType::RIGHT_PAREN || token.type == TokenType::PAREN)
                 {
-                    cout << "PRINT: " << value << endl;
+                    handlePrint(value);
                     token = lexer.getNextToken();
                     return 0;
                 }
                 else
                 {
-                    // cerr << "Error: Invalid print statement" << endl;
+                    handleError("Invalid print statement", token.line, token.column, showError);
                     return 0;
                 }
             }
@@ -80,13 +84,13 @@ int Parser::parseStatement()
             if (token.type == TokenType::STRING)
             {
                 string value = token.value;
-                cout << value << endl;
+                handlePrint(value);
                 token = lexer.getNextToken();
             }
             else
             {
                 int value = parseExpression();
-                cout << value << endl;
+                handlePrint(value);
                 token = lexer.getNextToken();
             }
         }
@@ -109,23 +113,23 @@ int Parser::parseStatement()
                 // Check if Variable is Already Declared
                 if (variables.find(variableName) != variables.end())
                 {
-                    // cerr << "Warning: Variable '" << variableName << "' already declared" << endl;
+                    handleError("variable '" + variableName + "' already declared", token.line, token.column, showError);
                 }
 
                 // Parse and Assign Value to Variable
                 int value = parseExpression();
                 variables[variableName] = value;
-                // cerr << "variable " << variableName << " declared with value " << value << endl;
+                handleLog("Variable " + variableName + " declared with value ", token.line, token.column, showLog);
             }
             else
             {
-                // cerr << "Error: Invalid variable declaration" << endl;
+                handleError("Invalid variable declaration", token.line, token.column, showError);
                 return 0;
             }
         }
         else
         {
-            // cerr << "Error: Invalid variable declaration" << endl;
+            handleError("Invalid variable declaration", token.line, token.column, showError);
             return 0;
         }
     }
@@ -142,17 +146,17 @@ int Parser::parseStatement()
             // Check if Variable is Declared
             if (variables.find(variableName) == variables.end())
             {
-                // cerr << "Warning: Variable '" << variableName << "' not declared" << endl;
+                handleWarning("variable '" + variableName + "' not declared", token.line, token.column, showWarning);
             }
 
             // Parse and Assign Value to the Variable
             int value = parseExpression();
             variables[variableName] = value;
-            // cerr << "variable " << variableName << " assigned value " << value << endl;
+            handleLog("Variable " + variableName + " assigned value ", token.line, token.column, showLog);
         }
         else
         {
-            // cerr << "Error: Invalid variable assignment" << endl;
+            handleError("Invalid variable assignment", token.line, token.column, showError);
             return 0;
         }
     }
@@ -189,7 +193,7 @@ int Parser::parseStatement()
             }
             else
             {
-                // cerr << "Error: Invalid if statement" << endl;
+                handleError("Invalid if statement", token.line, token.column, showError);
                 return 0;
             }
         }
@@ -219,8 +223,11 @@ int Parser::parseStatement()
     }
     else
     {
-        // cerr << "Error: Invalid statement" << endl;
-        return 0;
+        if (token.type != TokenType::END_OF_LINE)    
+        {
+            handleError("Invalid statement ", token.line, token.column, showError);
+            return 0;
+        }
     }
     return 0;
 }
@@ -342,7 +349,7 @@ int Parser::parseTerm()
             }
             else
             {
-                // cerr << "Error: Division by zero" << endl;
+                cerr << "Error: Division by zero" << endl;
                 return 0;
             }
         }
@@ -356,7 +363,7 @@ int Parser::parseTerm()
             }
             else
             {
-                // cerr << "Error: Modulo by zero" << endl;
+                cerr << "Error: Modulo by zero" << endl;
                 return 0;
             }
         }
@@ -381,7 +388,7 @@ int Parser::parseFactor()
         token = lexer.getNextToken();
         if (variables.find(variableName) == variables.end())
         {
-            // cerr << "Error: Variable '" << variableName << "' not declared" << endl;
+            cerr << "Error: Variable '" << variableName << "' not declared" << endl;
             return 0;
         }
         return variables[variableName];
@@ -409,7 +416,7 @@ int Parser::parseFactor()
         }
         else
         {
-            // cerr << "Error: Invalid expression" << endl;
+            cerr << "Error: Invalid expression" << endl;
             return 0;
         }
     }
@@ -422,7 +429,7 @@ int Parser::parseFactor()
     }
     else
     {
-        // cerr << "Error: Invalid expression" << endl;
+        cerr << "Error: Invalid expression" << endl;
         return 0;
     }
     return 0;
